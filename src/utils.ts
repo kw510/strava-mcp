@@ -87,7 +87,7 @@ export async function fetchUpstreamAuthToken({
 	client_secret: string;
 	redirect_uri: string;
 	client_id: string;
-}): Promise<[string, null] | [null, Response]> {
+}): Promise<[StravaAuthResponse, null] | [null, Response]> {
 	if (!code) {
 		return [null, new Response("Missing code", { status: 400 })];
 	}
@@ -108,5 +108,5 @@ export async function fetchUpstreamAuthToken({
 	if (!accessToken) {
 		return [null, new Response("Missing access token", { status: 400 })];
 	}
-	return [accessToken, null];
+	return [body, null];
 }

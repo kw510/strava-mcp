@@ -1,7 +1,8 @@
 import type { AuthRequest, OAuthHelpers } from "@cloudflare/workers-oauth-provider";
 import { Hono } from "hono";
-import { fetchUpstreamAuthToken, getUpstreamAuthorizeUrl } from "./utils";
-import { getLoggedInAthlete } from "./strava-api";
+import { fetchUpstreamAuthToken, getUpstreamAuthorizeUrl, StravaAuthResponse } from "./utils";
+import { StravaClient } from "./strava-api";
+import { env } from "cloudflare:workers";
 
 const app = new Hono<{ Bindings: Env & { OAUTH_PROVIDER: OAuthHelpers } }>();
 
@@ -12,6 +13,7 @@ export type Props = {
 	firstName: string;
 	lastName: string;
 	accessToken: string;
+	refreshToken: string;
 };
 
 /**
@@ -56,7 +58,7 @@ app.get("/callback", async (c) => {
 	}
 
 	// Exchange the code for an access token
-	const [accessToken, errResponse] = await fetchUpstreamAuthToken({
+	const [authResponse, errResponse] = await fetchUpstreamAuthToken({
 		upstream_url: "https://www.strava.com/api/v3/oauth/token",
 		client_id: c.env.STRAVA_CLIENT_ID,
 		client_secret: c.env.STRAVA_CLIENT_SECRET,
@@ -66,7 +68,7 @@ app.get("/callback", async (c) => {
 	if (errResponse) return errResponse;
 
 	// Fetch the user info from GitHub
-	const user = await getLoggedInAthlete(accessToken);
+	const user = await new StravaClient(authResponse.access_token).getLoggedInAthlete();
 	const { id, firstname, lastname } = user;
 
 	// Return back to the MCP client a new token
@@ -82,7 +84,8 @@ app.get("/callback", async (c) => {
 			userId: id.toString(),
 			firstName: firstname,
 			lastName: lastname,
-			accessToken,
+			accessToken: authResponse.access_token,
+			refreshToken: authResponse.refresh_token,
 		} as Props,
 	});
 
@@ -90,3 +93,30 @@ app.get("/callback", async (c) => {
 });
 
 export const StravaHandler = app;
+
+
+export const refreshStravaToken = async (refresh_token: string): Promise<Partial<Props>> => {
+	const response = await fetch("https://www.strava.com/api/v3/oauth/token", {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/x-www-form-urlencoded",
+		},
+		body: new URLSearchParams({
+			client_id: env.STRAVA_CLIENT_ID,
+			client_secret: env.STRAVA_CLIENT_SECRET,
+			grant_type: 'refresh_token',
+			refresh_token,
+		}).toString(),
+	});
+
+	if (!response.ok) {
+		const errorText = await response.text();
+		console.log("Token exchange failed:", response.status, errorText);
+		throw new Error(`Failed to refresh token: ${response.status} ${errorText}`);
+	}
+
+	const authResponse = await response.json() as StravaAuthResponse;
+		
+	// Return the updated tokens to be stored in props
+	return {accessToken: authResponse.access_token, refreshToken: authResponse.refresh_token}
+}
