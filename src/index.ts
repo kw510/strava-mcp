@@ -3,25 +3,18 @@ import { McpAgent } from "agents/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { Octokit } from "octokit";
-import { GitHubHandler } from "./github-handler";
+import { type Props, StravaHandler } from "./strava-handler";
 
-// Context from the auth process, encrypted & stored in the auth token
-// and provided to the DurableMCP as this.props
-type Props = {
-	login: string;
-	name: string;
-	email: string;
-	accessToken: string;
-};
 
-const ALLOWED_USERNAMES = new Set([
-	// Add GitHub usernames of users who should have access to the image generation tool
-	// For example: 'yourusername', 'coworkerusername'
+// To restrict access to specific users only, add their Strava userIDs to this Set.
+// Leave it empty to allow access to all authenticated users.
+const ALLOWED_USERIDS = new Set([
+	// For example: '1234567890',
 ]);
 
-export class MyMCP extends McpAgent<Props, Env> {
+export class StravaMCP extends McpAgent<Env, unknown, Props> {
 	server = new McpServer({
-		name: "Github OAuth Proxy Demo",
+		name: "Strava MCP",
 		version: "1.0.0",
 	});
 
@@ -53,45 +46,13 @@ export class MyMCP extends McpAgent<Props, Env> {
 				};
 			},
 		);
-
-		// Dynamically add tools based on the user's login. In this case, I want to limit
-		// access to my Image Generation tool to just me
-		if (ALLOWED_USERNAMES.has(this.props.login)) {
-			this.server.tool(
-				"generateImage",
-				"Generate an image using the `flux-1-schnell` model. Works best with 8 steps.",
-				{
-					prompt: z
-						.string()
-						.describe("A text description of the image you want to generate."),
-					steps: z
-						.number()
-						.min(4)
-						.max(8)
-						.default(4)
-						.describe(
-							"The number of diffusion steps; higher values can improve quality but take longer. Must be between 4 and 8, inclusive.",
-						),
-				},
-				async ({ prompt, steps }) => {
-					const response = await this.env.AI.run("@cf/black-forest-labs/flux-1-schnell", {
-						prompt,
-						steps,
-					});
-
-					return {
-						content: [{ type: "image", data: response.image!, mimeType: "image/jpeg" }],
-					};
-				},
-			);
-		}
 	}
 }
 
 export default new OAuthProvider({
 	apiRoute: "/sse",
-	apiHandler: MyMCP.mount("/sse"),
-	defaultHandler: GitHubHandler,
+	apiHandler: StravaMCP.mount("/sse"),
+	defaultHandler: StravaHandler,
 	authorizeEndpoint: "/authorize",
 	tokenEndpoint: "/token",
 	clientRegistrationEndpoint: "/register",

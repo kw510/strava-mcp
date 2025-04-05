@@ -10,7 +10,7 @@
 	"migrations": [
 		{
 			"new_sqlite_classes": [
-				"MyMCP"
+				"StravaMCP"
 			],
 			"tag": "v1"
 		}
@@ -21,7 +21,7 @@
 	"durable_objects": {
 		"bindings": [
 			{
-				"class_name": "MyMCP",
+				"class_name": "StravaMCP",
 				"name": "MCP_OBJECT"
 			}
 		]

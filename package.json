@@ -12,6 +12,7 @@
 		"@cloudflare/workers-oauth-provider": "^0.0.2",
 		"@cloudflare/workers-types": "^4.20250405.0",
 		"@modelcontextprotocol/sdk": "^1.7.0",
+		"@types/node": "^22.14.0",
 		"agents": "^0.0.45",
 		"hono": "^4.7.4",
 		"just-pick": "^4.2.0",
