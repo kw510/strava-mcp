@@ -47,7 +47,7 @@ You now have a remote MCP server deployed!
 
 ### Access Control
 
-This MCP server uses Strava OAuth for authentication. All authenticated Strava users can access basic tools like "add" and "userInfoStrava".
+This MCP server uses Strava OAuth for authentication.
 
 ### Access the remote MCP server from Claude Desktop
 
