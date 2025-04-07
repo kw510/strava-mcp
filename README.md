@@ -1,160 +1,144 @@
 # Model Context Protocol (MCP) Server + Strava OAuth
 
-This is a [Model Context Protocol (MCP)](https://modelcontextprotocol.io/introduction) server that supports remote MCP connections, with Strava OAuth built-in.
+This is a [Model Context Protocol (MCP)](https://modelcontextprotocol.io/introduction) server that supports remote MCP connections, with Strava OAuth built-in. It allows users to connect to your MCP server by signing in with their Strava account.
 
-You can deploy it to your own Cloudflare account, and after you create your own Strava OAuth client app, you'll have a fully functional remote MCP server that you can build off. Users will be able to connect to your MCP server by signing in with their Strava account.
+## Overview
 
-You can use this as a reference example for how to integrate other OAuth providers with an MCP server deployed to Cloudflare, using the [`workers-oauth-provider` library](https://github.com/cloudflare/workers-oauth-provider).
+The MCP server (powered by [Cloudflare Workers](https://developers.cloudflare.com/workers/)) serves two roles:
+- Acts as an OAuth Server for your MCP clients
+- Acts as an OAuth Client for Strava's OAuth services
 
-The MCP server (powered by [Cloudflare Workers](https://developers.cloudflare.com/workers/)): 
+This project serves as a reference example for integrating OAuth providers with an MCP server deployed to Cloudflare, using the [`workers-oauth-provider` library](https://github.com/cloudflare/workers-oauth-provider).
 
-* Acts as OAuth _Server_ to your MCP clients
-* Acts as OAuth _Client_ to your _real_ OAuth server (in this case, Strava)
+## Prerequisites
+
+- A Strava account
+- A Cloudflare account
+- Node.js and npm installed
+- Wrangler CLI installed (`npm install -g wrangler`)
+
+## Quick Start
+
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd strava-mcp
+   npm install
+   ```
+
+2. Set up your Strava API credentials (see [Setting Up Strava API Credentials](#setting-up-strava-api-credentials))
+
+3. Set up your Cloudflare KV namespace:
+   ```bash
+   wrangler kv:namespace create "OAUTH_KV"
+   ```
+   Update the `wrangler.toml` file with the generated KV ID.
+
+4. Deploy to Cloudflare:
+   ```bash
+   wrangler deploy
+   ```
 
 ## Setting Up Strava API Credentials
 
-Before you can use this project, you'll need to set up a Strava API application and get your credentials. Here's how:
-
+### For Production
 1. Go to [Strava's API Settings](https://www.strava.com/settings/api) and create a new application
-2. Fill in the following details:
+2. Configure your application:
    - Application Name: Choose a name for your application
    - Category: Select an appropriate category
-   - Website: Your website URL (can be a placeholder for development)
+   - Website: Your website URL
    - Application Description: Brief description of your application
-   - Authorization Callback Domain: 
-     - For production: `mcp-strava-oauth.<your-subdomain>.workers.dev`
-     - For development: `localhost`
-   - Authorization Callback URL:
-     - For production: `https://mcp-strava-oauth.<your-subdomain>.workers.dev/callback`
-     - For development: `http://localhost:8788/callback`
+   - Authorization Callback Domain: `mcp-strava-oauth.<your-subdomain>.workers.dev`
+   - Authorization Callback URL: `https://mcp-strava-oauth.<your-subdomain>.workers.dev/callback`
 
-3. After creating the application, you'll receive:
-   - Client ID: Your application's unique identifier
-   - Client Secret: A secret key for authentication (keep this secure!)
+3. Set your production environment variables:
+   ```bash
+   wrangler secret put STRAVA_CLIENT_ID
+   wrangler secret put STRAVA_CLIENT_SECRET
+   ```
 
-4. Set up your environment variables:
-   - For production (using Wrangler):
-     ```bash
-     wrangler secret put STRAVA_CLIENT_ID
-     wrangler secret put STRAVA_CLIENT_SECRET
-     ```
-   - For development:
-     Create a `.dev.vars` file in your project root with:
-     ```
-     STRAVA_CLIENT_ID=your_development_strava_client_id
-     STRAVA_CLIENT_SECRET=your_development_strava_client_secret
-     ```
+### For Development
+1. Create a separate Strava API application for development
+2. Configure your development application:
+   - Authorization Callback Domain: `localhost`
+   - Authorization Callback URL: `http://localhost:8788/callback`
 
-Note: The Strava API has rate limits of 200 requests every 15 minutes and up to 2,000 requests per day. Keep this in mind when developing your application.
+3. Create a `.dev.vars` file in your project root:
+   ```
+   STRAVA_CLIENT_ID=your_development_strava_client_id
+   STRAVA_CLIENT_SECRET=your_development_strava_client_secret
+   ```
 
-## Getting Started
+## Testing Your MCP Server
 
-Clone the repo & install dependencies: `npm install`
+### Using Inspector
+1. Install the Inspector tool:
+   ```bash
+   npx @modelcontextprotocol/inspector@latest
+   ```
 
-### For Production
-Create a new [Strava API Application](https://www.strava.com/settings/api): 
-- For the Authorization Callback Domain, specify `mcp-strava-oauth.<your-subdomain>.workers.dev`
-- For the Authorization Callback URL, specify `https://mcp-strava-oauth.<your-subdomain>.workers.dev/callback`
-- Note your Client ID and generate a Client secret. 
-- Set secrets via Wrangler
-```bash
-wrangler secret put STRAVA_CLIENT_ID
-wrangler secret put STRAVA_CLIENT_SECRET
-```
-#### Set up a KV namespace
-- Create the KV namespace: 
-`wrangler kv:namespace create "OAUTH_KV"`
-- Update the Wrangler file with the KV ID
+2. Connect to your server:
+   - For production: `https://mcp-strava-oauth.<your-subdomain>.workers.dev/sse`
+   - For development: `http://localhost:8788/sse`
 
-#### Deploy & Test
-Deploy the MCP server to make it available on your workers.dev domain 
-` wrangler deploy`
+### Using Claude Desktop
+1. Open Claude Desktop and go to Settings -> Developer -> Edit Config
+2. Add your MCP server configuration:
+   ```json
+   {
+     "mcpServers": {
+       "strava": {
+         "command": "npx",
+         "args": [
+           "mcp-remote",
+           "https://mcp-strava-oauth.<your-subdomain>.workers.dev/sse"
+         ]
+       }
+     }
+   }
+   ```
+3. Restart Claude Desktop and complete the OAuth flow
 
-Test the remote server using [Inspector](https://modelcontextprotocol.io/docs/tools/inspector): 
+## Development
 
-```
-npx @modelcontextprotocol/inspector@latest
-```
-Enter `https://mcp-strava-oauth.<your-subdomain>.workers.dev/sse` and hit connect. Once you go through the authentication flow, you'll see the Tools working: 
+### Local Development
+1. Start the development server:
+   ```bash
+   wrangler dev
+   ```
 
-<img width="640" alt="image" src="https://github.com/user-attachments/assets/7973f392-0a9d-4712-b679-6dd23f824287" />
+2. The server will be available at `http://localhost:8788`
 
-You now have a remote MCP server deployed! 
+### API Rate Limits
+The Strava API has the following rate limits:
+- 200 requests every 15 minutes
+- 2,000 requests per day
 
-### Access Control
+## How It Works
 
-This MCP server uses Strava OAuth for authentication.
+### OAuth Provider
+The OAuth Provider library handles:
+- OAuth 2.1 server implementation
+- Token issuance and validation
+- Secure token storage in KV
+- Strava OAuth integration
 
-### Access the remote MCP server from Claude Desktop
+### Durable MCP
+Provides:
+- Persistent state management
+- Secure authentication context storage
+- User information access via `this.props`
+- Conditional tool availability
 
-Open Claude Desktop and navigate to Settings -> Developer -> Edit Config. This opens the configuration file that controls which MCP servers Claude can access.
+### MCP Remote
+Enables:
+- Client-server communication
+- Tool definition and management
+- Request/response serialization
+- SSE connection maintenance
 
-Replace the content with the following configuration. Once you restart Claude Desktop, a browser window will open showing your OAuth login page. Complete the authentication flow to grant Claude access to your MCP server. After you grant access, the tools will become available for you to use. 
+## Troubleshooting
 
-```
-{
-  "mcpServers": {
-    "math": {
-      "command": "npx",
-      "args": [
-        "mcp-remote",
-        "https://mcp-strava-oauth.<your-subdomain>.workers.dev/sse"
-      ]
-    }
-  }
-}
-```
-
-Once the Tools (under 🔨) show up in the interface, you can ask Claude to use them. For example: "Could you use the math tool to add 23 and 19?". Claude should invoke the tool and show the result generated by the MCP server.
-
-### For Local Development
-If you'd like to iterate and test your MCP server, you can do so in local development. This will require you to create another API Application on Strava: 
-- For the Authorization Callback Domain, specify `localhost`
-- For the Authorization Callback URL, specify `http://localhost:8788/callback`
-- Note your Client ID and generate a Client secret. 
-- Create a `.dev.vars` file in your project root with: 
-```
-STRAVA_CLIENT_ID=your_development_strava_client_id
-STRAVA_CLIENT_SECRET=your_development_strava_client_secret
-```
-
-#### Develop & Test
-Run the server locally to make it available at `http://localhost:8788`
-`wrangler dev`
-
-To test the local server, enter `http://localhost:8788/sse` into Inspector and hit connect. Once you follow the prompts, you'll be able to "List Tools". 
-
-#### Using Claude and other MCP Clients
-
-When using Claude to connect to your remote MCP server, you may see some error messages. This is because Claude Desktop doesn't yet support remote MCP servers, so it sometimes gets confused. To verify whether the MCP server is connected, hover over the 🔨 icon in the bottom right corner of Claude's interface. You should see your tools available there.
-
-#### Using Cursor and other MCP Clients
-
-To connect Cursor with your MCP server, choose `Type`: "Command" and in the `Command` field, combine the command and args fields into one (e.g. `npx mcp-remote https://<your-worker-name>.<your-subdomain>.workers.dev/sse`).
-
-Note that while Cursor supports HTTP+SSE servers, it doesn't support authentication, so you still need to use `mcp-remote` (and to use a STDIO server, not an HTTP one).
-
-You can connect your MCP server to other MCP clients like Windsurf by opening the client's configuration file, adding the same JSON that was used for the Claude setup, and restarting the MCP client.
-
-## How does it work? 
-
-#### OAuth Provider
-The OAuth Provider library serves as a complete OAuth 2.1 server implementation for Cloudflare Workers. It handles the complexities of the OAuth flow, including token issuance, validation, and management. In this project, it plays the dual role of:
-
-- Authenticating MCP clients that connect to your server
-- Managing the connection to Strava's OAuth services
-- Securely storing tokens and authentication state in KV storage
-
-#### Durable MCP
-Durable MCP extends the base MCP functionality with Cloudflare's Durable Objects, providing:
-- Persistent state management for your MCP server
-- Secure storage of authentication context between requests
-- Access to authenticated user information via `this.props`
-- Support for conditional tool availability based on user identity
-
-#### MCP Remote
-The MCP Remote library enables your server to expose tools that can be invoked by MCP clients like the Inspector. It:
-- Defines the protocol for communication between clients and your server
-- Provides a structured way to define tools
-- Handles serialization and deserialization of requests and responses
-- Maintains the Server-Sent Events (SSE) connection between clients and your server
+- If you see error messages in Claude Desktop, verify the connection by hovering over the 🔨 icon
+- For Cursor integration, use the "Command" type and combine command and args into one string
+- Ensure your callback URLs match exactly with what's configured in your Strava application
