@@ -21,7 +21,7 @@ This project serves as a reference example for integrating OAuth providers with 
 
 1. Clone the repository:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/kw510/strava-mcp.git
    cd strava-mcp
    npm install
    ```
