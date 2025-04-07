@@ -11,6 +11,42 @@ The MCP server (powered by [Cloudflare Workers](https://developers.cloudflare.co
 * Acts as OAuth _Server_ to your MCP clients
 * Acts as OAuth _Client_ to your _real_ OAuth server (in this case, Strava)
 
+## Setting Up Strava API Credentials
+
+Before you can use this project, you'll need to set up a Strava API application and get your credentials. Here's how:
+
+1. Go to [Strava's API Settings](https://www.strava.com/settings/api) and create a new application
+2. Fill in the following details:
+   - Application Name: Choose a name for your application
+   - Category: Select an appropriate category
+   - Website: Your website URL (can be a placeholder for development)
+   - Application Description: Brief description of your application
+   - Authorization Callback Domain: 
+     - For production: `mcp-strava-oauth.<your-subdomain>.workers.dev`
+     - For development: `localhost`
+   - Authorization Callback URL:
+     - For production: `https://mcp-strava-oauth.<your-subdomain>.workers.dev/callback`
+     - For development: `http://localhost:8788/callback`
+
+3. After creating the application, you'll receive:
+   - Client ID: Your application's unique identifier
+   - Client Secret: A secret key for authentication (keep this secure!)
+
+4. Set up your environment variables:
+   - For production (using Wrangler):
+     ```bash
+     wrangler secret put STRAVA_CLIENT_ID
+     wrangler secret put STRAVA_CLIENT_SECRET
+     ```
+   - For development:
+     Create a `.dev.vars` file in your project root with:
+     ```
+     STRAVA_CLIENT_ID=your_development_strava_client_id
+     STRAVA_CLIENT_SECRET=your_development_strava_client_secret
+     ```
+
+Note: The Strava API has rate limits of 200 requests every 15 minutes and up to 2,000 requests per day. Keep this in mind when developing your application.
+
 ## Getting Started
 
 Clone the repo & install dependencies: `npm install`
