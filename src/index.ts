@@ -637,18 +637,21 @@ export class StravaMCP extends McpAgent<unknown, unknown, Props> {
 			"exploreSegments",
 			"Explore segments",
 			{
-				bounds: z.tuple([
-					z.number({ description: "Southwest latitude" }),
-					z.number({ description: "Southwest longitude" }),
-					z.number({ description: "Northeast latitude" }),
-					z.number({ description: "Northeast longitude" })
-				], { description: "Array of [sw.lat, sw.lng, ne.lat, ne.lng]" }),
+				bounds: z.object({
+					sw_lat: z.number({ description: "Southwest latitude" }),
+					sw_lng: z.number({ description: "Southwest longitude" }),
+					ne_lat: z.number({ description: "Northeast latitude" }),
+					ne_lng: z.number({ description: "Northeast longitude" })
+				}, { description: "Bounding box coordinates" }),
 				activity_type: z.string({ description: "Activity type (optional)" }).optional(),
 				min_cat: z.number({ description: "Minimum category (optional)" }).optional(),
 				max_cat: z.number({ description: "Maximum category (optional)" }).optional(),
 			},
 			async (params) => {
-				const segments = await new StravaClient(this.props.accessToken).exploreSegments(params);
+				const segments = await new StravaClient(this.props.accessToken).exploreSegments({
+					...params,
+					bounds: params.bounds
+				});
 				return {
 					content: [{
 						type: "text",

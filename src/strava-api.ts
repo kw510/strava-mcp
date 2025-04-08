@@ -297,13 +297,18 @@ export class StravaClient {
   }
 
   async exploreSegments(params: {
-    bounds: [number, number, number, number];
+    bounds: {
+      sw_lat: number;
+      sw_lng: number;
+      ne_lat: number;
+      ne_lng: number;
+    };
     activity_type?: string;
     min_cat?: number;
     max_cat?: number;
   }): Promise<any[]> {
     const queryParams = new URLSearchParams();
-    queryParams.append('bounds', params.bounds.join(','));
+    queryParams.append('bounds', [params.bounds.sw_lat, params.bounds.sw_lng, params.bounds.ne_lat, params.bounds.ne_lng].join(','));
     if (params.activity_type) queryParams.append('activity_type', params.activity_type);
     if (params.min_cat) queryParams.append('min_cat', params.min_cat.toString());
     if (params.max_cat) queryParams.append('max_cat', params.max_cat.toString());
