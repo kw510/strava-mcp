@@ -2,7 +2,7 @@ import OAuthProvider from "@cloudflare/workers-oauth-provider";
 import { McpAgent } from "agents/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { type Props, StravaHandler } from "./strava-handler";
+import { type Props, refreshStravaToken, StravaHandler } from "./strava-handler";
 import { StravaClient } from "./strava-api";
 
 // To restrict access to specific users only, add their Strava userIDs to this Set.
@@ -757,8 +757,12 @@ export default new OAuthProvider({
 	tokenEndpoint: "/token",
 	clientRegistrationEndpoint: "/register",
 	tokenExchangeCallback: async (options) => {
-		return {
-			...options.props
+		if (options.grantType === "refresh_token") {
+			return {
+				...options.props,
+				...await refreshStravaToken(options.props.refreshToken)
+			}
 		}
+		return options.props
 	}
 });
